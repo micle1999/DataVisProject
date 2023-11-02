@@ -7,6 +7,8 @@
 #    http://shiny.rstudio.com/
 #
 
+source("utils.R")
+
 library(shiny)
 library(ggplot2)
 library(dplyr)
@@ -39,23 +41,24 @@ ui <- fluidPage(
 server <- function(input, output) {
   
     #load dataset
-    data <- read.csv(file = 'WHI.csv',header = TRUE, sep = ';')
+    data <- read.csv(file = 'WHI_geo.csv',header = TRUE, sep = ';', colClasses = c('character','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric'))
     
     #Categorize Life Ladder
-    data$happiness_cat <- ifelse(data$Life.Ladder <= 4.5, "Unhappy", ifelse(data$Life.Ladder <= 6 | data$Life.Ladder >4.5, "Neutral", ifelse(data$Life.Ladder > 6, "Happy", "Other")))
+    data$happiness_cat <- ifelse(data$Life.Ladder <= 4.5, "Unhappy", ifelse(data$Life.Ladder <= 6 & data$Life.Ladder >4.5, "Neutral", ifelse(data$Life.Ladder > 6, "Happy", "Other")))
       
     #define the color of for the depth of the earquakes
     color_pal <- colorFactor(
-      palette = c('red', 'yellow', 'green'),
+      palette = c('green', 'yellow', 'red'),
       domain = data$happiness_cat
     )
     
     #create the map
+    print(data$Longitude)
     output$heatmap <- renderLeaflet({
       leaflet(data) %>% 
         setView(lng = -99, lat = 45, zoom = 2)  %>% #setting the view over ~ center of North America
         addTiles() %>% 
-        addCircles(opacity = 50, data = data, lat = 42.546245, lng = 1.601554, weight = 1, radius = 25000, popup = ~as.character(Country.name), label = ~as.character(paste0("Happines of the country: ", sep = " ", happiness_cat)), color = ~color_pal(happiness_cat), fillOpacity = 0.5)
+        addCircles(opacity = 70, data = data, lat = data$Latitude, lng = data$Longitude, weight = 1, radius = 100000, popup = ~as.character(Country.name), label = ~as.character(paste0("Happines of the country: ", sep = " ", happiness_cat)), color = ~color_pal(happiness_cat), fillOpacity = 0.5)
     })
     
     output$heatmap2 <- renderLeaflet({
@@ -76,6 +79,9 @@ server <- function(input, output) {
     })
    
 }
+
+
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)
