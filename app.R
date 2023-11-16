@@ -16,6 +16,7 @@ library(leaflet)
 library(leaflet.extras)
 library(stringr)
 library(shinyWidgets)
+library(RColorBrewer)
 #library(gganimate)
 
 library(spData) # For getting spatial data
@@ -43,7 +44,9 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
     mainPanel(
       tabsetPanel(type = "tabs",
-                  tabPanel("Map", sliderInput("slider_year", "Select year:",
+                  tabPanel("Map", 
+                           selectInput("input_mode", "Select Mode:", c("Normal","Colorblind"), selected = "Normal"),
+                           sliderInput("slider_year", "Select year:",
                                               min = 2006, max = 2022, value = 2014, step=1, sep=" ", ticks=FALSE, width = "100%"),
                   leafletOutput("map_graph",  width = "1000px", height = "600px")),
                   
@@ -104,7 +107,11 @@ server <- function(input, output) {
       countries <- left_join(selected_data, mapData, c("Country.name" = "name_long"))
       
       #Color pallete for the map  
-      pal <- colorNumeric(palette = c("#FF9999", "#FFFF99", "#98FB98"), domain = countries$Life.Ladder)  
+      
+      if(input$input_mode == "Normal")
+        pal <- colorNumeric(palette = c("#FF9999", "#FFFF99", "#98FB98"), domain = countries$Life.Ladder)  
+      else
+        pal <- colorNumeric(palette = c("#f1a340", "#f7f7f7", "#998ec3"), domain = countries$Life.Ladder)  
       
       map <- leaflet(data) %>% 
         setView(lng = 0, lat = 45, zoom = 2)  %>% #setting the view over ~ center of North America
@@ -117,7 +124,12 @@ server <- function(input, output) {
                           color = "grey",
                           weight = 1,
                           popup = paste("Country: ", countries$Country.name, "<br>",
-                                        "Happiness Index: ", countries$Life.Ladder, "<br>"))
+                                        "Happiness Index: ", countries$Life.Ladder, "<br>")) %>%
+        addLegend("bottomright", pal = pal, values = ~Life.Ladder,
+                  title = "Happiness Index",
+                  labFormat = labelFormat(prefix = ""),
+                  opacity = 1
+        )
     })
     
    
