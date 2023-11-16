@@ -1,0 +1,11 @@
+.flex-center {
+  display:flex;
+  align-items: center;
+  flex-direction:column;
+  margin:auto;
+}
+
+
+.col-sm-8 {
+  float:none;
+}
