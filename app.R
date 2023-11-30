@@ -33,21 +33,15 @@ ui <- fluidPage(
   
     theme = "styles.css",
     
-    setBackgroundImage(
-      src = "https://img.freepik.com/free-photo/peachy-blur-gradient-background-soft-vintage-style_53876-108717.jpg?w=2000&t=st=1699966170~exp=1699966770~hmac=5601c1c7ff8a723798c8c1823c3724703cb80eea5b176c9d698adf8461753bc9"
-    ),
+    #setBackgroundImage(
+    #  src = "https://img.freepik.com/free-photo/peachy-blur-gradient-background-soft-vintage-style_53876-108717.jpg?w=2000&t=st=1699966170~exp=1699966770~hmac=5601c1c7ff8a723798c8c1823c3724703cb80eea5b176c9d698adf8461753bc9"
+    #),
   
     # Application title
     headerPanel(h1("World Happiness Index", align='center')),
     
 
-    # Sidebar with a slider input for number of bins 
-    #sidebarLayout(
-    #    sidebarPanel(
-    #        
-    #    ),
-
-        # Show a plot of the generated distribution
+        
     mainPanel(
       tabsetPanel(type = "tabs",
                   
@@ -56,9 +50,16 @@ ui <- fluidPage(
                            selectInput("input_mode", "Select Mode:", c("Normal","Colorblind"), selected = "Normal"),
                            sliderInput("slider_year", "Select year:",
                                               min = 2006, max = 2022, value = 2014, step=1, sep=" ", ticks=FALSE, width = "100%"),
-                           leafletOutput("map_graph",  width = "1000px", height = "600px")),
+                           leafletOutput("map_graph",  width = "1100px", height = "600px")),
                   
-                  tabPanel(h4("Plots"), selectInput("input_year", "Select Year:", c(2006:2022)), plotOutput("pie_chart",  width = "1000px", height = "600px")),
+                  tabPanel(
+                    h4("Charts"),
+                    
+                      h4("Line Chart"),plotOutput("line_chart", width ="1100px"),
+                      h4("Pie Chart") , selectInput("input_year", "Select Year:", c(2006:2022)), plotOutput("pie_chart",  width = "100%")
+                    
+                  ),
+        
                   
                   #KARITA'S GRAPHS
                   tabPanel(
@@ -140,7 +141,24 @@ server <- function(input, output) {
     #Categorize Life Ladder
     data$happiness_cat <- ifelse(data$Life.Ladder <= 4.5, "Unhappy", ifelse(data$Life.Ladder <= 6 & data$Life.Ladder >4.5, "Neutral", ifelse(data$Life.Ladder > 6, "Happy", "Other")))
       
- 
+    
+    #Create Line chart (Question no. 2a)
+    output$line_chart <- renderPlot({
+      
+      line_count <- as.data.frame(table(data$year, data$happiness_cat))
+      colnames(line_count) <- c("year", "cat", "count")
+      
+      ggplot(line_count, aes(x = year, y = count, color = cat, group = cat)) +
+        geom_line() +
+        geom_point() +
+        labs(title = "Line Chart of Happiness Categories Over Years",
+             x = "Year",
+             y = "Count",
+             color = "Category") +
+        theme_dark() +
+        scale_color_manual(values = c("#98FB98", "#FFFF99", "#FF9999"))
+    })
+    
     #Create Pie chart (Question no.2a)
     output$pie_chart <- renderPlot({
       
@@ -196,9 +214,9 @@ server <- function(input, output) {
                           weight = 1,
                           popup = paste("Country: ", countries$Country.name, "<br>",
                                         "Happiness Index: ", countries$Life.Ladder, "<br>")) %>%
-        addLegend("bottomright", pal = pal, values = ~Life.Ladder,
+        addLegend("bottomright", pal = pal, values = c(8 , 2),
                   title = "Happiness Index",
-                  labFormat = labelFormat(prefix = ""),
+                  labFormat = labelFormat(prefix = " "),
                   opacity = 1
         )
     })
