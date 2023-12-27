@@ -19,11 +19,13 @@ library(shinyWidgets)
 library(RColorBrewer)
 library(plotly)
 library(viridis)
-#library(gganimate)
+library(gganimate)
+library(gapminder)
 
 library(spData) # For getting spatial data
 library(sf) # For preserving spatial data
 
+theme_set(theme_bw())
 
 #load dataset
 data <- read.csv(file = 'WHI_geo_new.csv',header = TRUE, sep = ';', colClasses = c('character','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric','numeric'))
@@ -45,6 +47,9 @@ ui <- fluidPage(
     tabsetPanel(type = "tabs",
                 
                 #MICHAL'S GRAPHS
+                tabPanel(h4("Animation"), 
+                         imageOutput("animation", width ="1100px")),
+                
                 tabPanel(h4("World Map"), 
                          selectInput("input_mode", "Select Color mode:", c("Normal","Colorblind"), selected = "Normal"),
                          sliderInput("slider_year", "Select year:",
@@ -225,6 +230,35 @@ server <- function(input, output) {
                 opacity = 1
       )
   })
+  
+  
+  #Animation
+  output$animation <- renderImage({
+    
+    # A temp file to save the output.
+    # This file will be removed later by renderImage
+    outfile <- tempfile(fileext='.gif')  
+    
+    p = ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+      geom_point(alpha = 0.7, show.legend = FALSE) +
+      scale_colour_manual(values = country_colors) +
+      scale_size(range = c(2, 12)) +
+      scale_x_log10() +
+      facet_wrap(~continent) +
+      # Here comes the gganimate specific bits
+      labs(title = 'Year', x = 'GDP per capita', y = 'life expectancy') +
+      transition_time(year) +
+      ease_aes('linear') 
+    
+    anim_save("outfile.gif", animate(p))
+    # Return a list containing the filename
+    list(src = "outfile.gif",
+         contentType = 'image/gif',
+         width = 400,
+         height = 300,
+         # alt = "This is alternate text"
+    )}, deleteFile = TRUE)
+  
   
   
   #KARITA'S SERVER CODE
