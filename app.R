@@ -47,8 +47,12 @@ ui <- fluidPage(
     tabsetPanel(type = "tabs",
                 
                 #MICHAL'S GRAPHS
-                tabPanel(h4("Animation"), 
-                         imageOutput("animation", width ="1100px")),
+                tabPanel(h4("Download Report"), 
+                         # Button
+                         HTML("<p><br><br><br></p>"),
+                         HTML("<p>Download Report :</p>"),
+                         downloadButton("downloadData", "Download Report")),
+                
                 
                 tabPanel(h4("World Map"), 
                          selectInput("input_mode", "Select Color mode:", c("Normal","Colorblind"), selected = "Normal"),
@@ -108,7 +112,7 @@ ui <- fluidPage(
                   
                   plotlyOutput(outputId = "line_plot", height = "500px", width = "800px"),
                   #HTML("<p>Double-click on a legend to isolate one trace<br>Click once on a legend to make this trace disappear<br><br><br></p>"),
-                  plotOutput(outputId = "line_plot1"),  # Nouvelle sortie pour le deuxième graphique
+                  imageOutput(outputId = "line_plot1"),  # Nouvelle sortie pour le deuxième graphique
                   #HTML("<p><br><br><br></p>"),
                   selectInput(inputId = "selected_region_line_plot2", 
                               label = "Select a region", 
@@ -147,6 +151,14 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   #MICHAL'S SERVER CODE
+  
+  # Downloadable csv of selected dataset ----
+  output$downloadData <- downloadHandler(
+    filename = "ProjectReportGroup6.pdf",
+    content = function(file) {
+      file.copy("Security_In_Computer_Systems_Project.pdf", file)
+    })
+    
   
   #Categorize Life Ladder
   data$happiness_cat <- ifelse(data$Life.Ladder <= 4.5, "Unhappy", ifelse(data$Life.Ladder <= 6 & data$Life.Ladder >4.5, "Neutral", ifelse(data$Life.Ladder > 6, "Happy", "Other")))
@@ -234,30 +246,34 @@ server <- function(input, output) {
   
   #Animation
   output$animation <- renderImage({
-    
-    # A temp file to save the output.
-    # This file will be removed later by renderImage
-    outfile <- tempfile(fileext='.gif')  
-    
-    p = ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
-      geom_point(alpha = 0.7, show.legend = FALSE) +
-      scale_colour_manual(values = country_colors) +
-      scale_size(range = c(2, 12)) +
-      scale_x_log10() +
-      facet_wrap(~continent) +
-      # Here comes the gganimate specific bits
-      labs(title = 'Year', x = 'GDP per capita', y = 'life expectancy') +
-      transition_time(year) +
-      ease_aes('linear') 
-    
-    anim_save("outfile.gif", animate(p))
-    # Return a list containing the filename
-    list(src = "outfile.gif",
-         contentType = 'image/gif',
-         width = 400,
-         height = 300,
-         # alt = "This is alternate text"
-    )}, deleteFile = TRUE)
+      # A temp file to save the output.
+      # This file will be removed later by renderImage
+      outfile <- tempfile(fileext='.gif')
+      # now make the animation
+      p = ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+        geom_point(alpha = 0.7) +
+        scale_colour_manual(values = country_colors) +
+        scale_size(range = c(2, 12)) +
+        scale_x_log10() +
+        facet_wrap(~continent) +
+        theme(legend.position = 'none') +
+        labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+        transition_time(year) +
+        ease_aes('linear')
+      #p = ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, 
+      #                          color = continent)) + geom_point() + scale_x_log10() +
+      # transition_time(year) 
+      
+      anim_save(outfile, animate(p, 100, 10)) 
+      # Return a list containing the filename
+      list(
+        src = outfile,
+        contentType = 'image/gif',
+        width = 900,
+        height = 700
+        # alt = "This is alternate text"
+      )
+    }, deleteFile = TRUE)
   
   
   
@@ -384,7 +400,9 @@ server <- function(input, output) {
     p
   })
   
-  output$line_plot1 <- renderPlot({
+  output$line_plot1 <- renderImage({
+    
+    outfile <- tempfile(fileext='.gif')
     # Convertir year en numérique si nécessaire
     data$year <- as.numeric(data$year)
     
@@ -417,14 +435,26 @@ server <- function(input, output) {
     filtered_data$region <- factor(filtered_data$region, levels = unique(filtered_data$region))
     
     # Tracer le graphique avec la palette de couleurs personnalisée et les étiquettes de légende
-    ggplot(filtered_data, aes(x = year, y = Average_Life_Ladder, color = region, group = region)) +
+    p = ggplot(filtered_data, aes(x = year, y = Average_Life_Ladder, color = region, group = region)) +
       geom_line() +
       geom_point() +
       xlab("Year") + ylab("Value of Happiness") +
       ggtitle(paste("Evolution of Happiness per regions")) +
       scale_color_manual(values = my_colors, labels = my_labels) +
-      theme(legend.position = "bottom")  # Déplacer la légende en dessous 
-  })
+      theme(legend.position = "bottom") + # Déplacer la légende en dessous 
+      transition_reveal(year)
+    
+    anim_save(outfile, animate(p, 100, 10)) 
+    # Return a list containing the filename
+    list(
+      src = outfile,
+      contentType = 'image/gif',
+      width = 760,
+      height= 400
+      # alt = "This is alternate text"
+    )
+  }, deleteFile = TRUE)
+      
   
   
   output$line_plot2 <- renderPlot({
